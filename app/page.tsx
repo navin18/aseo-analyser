@@ -8,7 +8,7 @@ import { Header } from "@/components/prompt-analyzer/Header"
 import { InputSection } from "@/components/prompt-analyzer/InputSection"
 import { ProcessingState } from "@/components/prompt-analyzer/ProcessingState"
 import { RecommendationsSection } from "@/components/prompt-analyzer/RecommendationsSection"
-import { PROCESSING_STEPS } from "@/lib/constants" // Declare the variable here
+import { PROCESSING_STEPS } from "@/lib/constants"
 
 export default function NotionPromptAnalyzer() {
   const [analysisState, setAnalysisState] = useState<AnalysisState>("idle")
@@ -103,10 +103,9 @@ export default function NotionPromptAnalyzer() {
     setAnalysisState("processing")
     setCurrentStep(0)
 
-    // Start a simple timer-based animation for the processing steps UI
     const stepAnimationInterval = setInterval(() => {
       setCurrentStep((prev) => (prev < PROCESSING_STEPS.length - 1 ? prev + 1 : prev))
-    }, 15000) // ~2 minutes for all steps visually
+    }, 20000) // ~2.5 minutes for all steps visually
 
     try {
       const payload = {
@@ -114,8 +113,7 @@ export default function NotionPromptAnalyzer() {
         prompts: prompts.map((p) => p.text),
       }
 
-      // 1. Start the analysis and get a session ID
-      const startResponse = await fetch("/api/analyze/start", {
+      const startResponse = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -127,31 +125,29 @@ export default function NotionPromptAnalyzer() {
       }
       const { sessionId } = startData
 
-      // 2. Poll for results
-      const pollStartTime = Date.now()
-      const pollInterval = 5000 // Poll every 5 seconds
-      const timeout = 180000 // 3-minute client-side timeout
+      let attempts = 0
+      const maxAttempts = 60 // 60 attempts * 5 seconds = 5 minutes
+      const pollInterval = 5000
 
-      while (Date.now() - pollStartTime < timeout) {
-        const statusResponse = await fetch(`/api/analyze/status/${sessionId}`)
+      while (attempts < maxAttempts) {
+        attempts++
+        await new Promise((resolve) => setTimeout(resolve, pollInterval))
+
+        const statusResponse = await fetch(`/api/results/${sessionId}`)
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
-          if (statusData.status === "complete") {
-            clearInterval(stepAnimationInterval) // Stop visual animation
-            setRecommendations(statusData.data)
+          if (statusData.success && statusData.complete) {
+            clearInterval(stepAnimationInterval)
+            setRecommendations(statusData.top_prompts)
             setAnalysisState("complete")
-            return // Success!
+            return
           }
-          // If status is 'processing', the loop will continue.
         }
-        // Wait for the next poll
-        await new Promise((resolve) => setTimeout(resolve, pollInterval))
       }
 
-      // If we exit the loop, it's a timeout
-      throw new Error("Analysis timed out after 3 minutes. Please try again.")
+      throw new Error("Analysis timed out after 5 minutes. Please try again.")
     } catch (error) {
-      clearInterval(stepAnimationInterval) // Ensure animation stops on error
+      clearInterval(stepAnimationInterval)
       setAnalysisState("idle")
       const message = error instanceof Error ? error.message : "An unknown error occurred."
       alert(`Error: ${message}`)

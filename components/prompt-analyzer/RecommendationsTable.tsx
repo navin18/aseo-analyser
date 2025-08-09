@@ -43,28 +43,13 @@ const getDifficultyBadgeColor = (difficulty: number) => {
 const BooleanIndicator = ({ value }: { value: boolean }) =>
   value ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-gray-400" />
 
-const SerpFeatures = ({ rec }: { rec: RecommendedPrompt }) => (
-  <div className="flex items-center gap-1.5 flex-wrap">
-    {rec.has_featured_snippet && (
-      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
-        Snippet
-      </Badge>
-    )}
-    {rec.has_paa && (
-      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
-        PAA
-      </Badge>
-    )}
-    {rec.has_ai_overview && (
-      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
-        AI Overview
-      </Badge>
-    )}
-    {!rec.has_featured_snippet && !rec.has_paa && !rec.has_ai_overview && (
-      <span className="text-xs text-[#787774]">None</span>
-    )}
-  </div>
-)
+const SerpFeatures = ({ rec }: { rec: RecommendedPrompt }) => {
+  const features = [rec.has_featured_snippet && "FS", rec.has_paa && "PAA", rec.has_ai_overview && "AI"]
+    .filter(Boolean)
+    .join(", ")
+
+  return <span className="text-sm text-[#787774]">{features || "None"}</span>
+}
 
 export function RecommendationsTable({
   recommendations,
@@ -289,18 +274,26 @@ const AiViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
     </CellWrapper>
     <CellWrapper>
       <span className="text-sm text-[#787774]">
-        {rec.perplexity_citation_rank > 0 ? rec.perplexity_citation_rank : "N/A"}
+        {`P: ${rec.perplexity_citation_rank || "N/A"}, G: ${rec.gemini_citation_rank || "N/A"}`}
       </span>
     </CellWrapper>
     <CellWrapper>
-      <BooleanIndicator value={rec.perplexity_first_paragraph} />
+      <span className="text-sm text-[#787774]">
+        {rec.perplexity_first_paragraph && rec.gemini_first_paragraph
+          ? "Both"
+          : rec.perplexity_first_paragraph
+            ? "Perplexity"
+            : rec.gemini_first_paragraph
+              ? "Gemini"
+              : "None"}
+      </span>
     </CellWrapper>
     <CellWrapper>
-      <span className="text-sm text-[#787774]">{rec.engine_consensus}</span>
+      <span className="text-sm text-[#37352f]">{Math.round(rec.engine_consensus * 100)}%</span>
     </CellWrapper>
     <CellWrapper>
       <div className="inline-flex items-center px-2 py-0.5 bg-[#f1f1ef] rounded text-sm font-medium text-[#37352f]">
-        {rec.final_score}
+        {rec.ai_opportunity_score}
       </div>
     </CellWrapper>
   </>
@@ -334,11 +327,12 @@ const SeoViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
     <CellWrapper>
       <span
         className={cn(
-          "text-sm",
+          "text-sm font-medium",
           rec.trend_yoy > 0 ? "text-green-600" : rec.trend_yoy < 0 ? "text-red-600" : "text-[#787774]",
         )}
       >
-        {rec.trend_yoy.toFixed(0)}%
+        {rec.trend_yoy > 0 ? "+" : ""}
+        {rec.trend_yoy.toFixed(1)}%
       </span>
     </CellWrapper>
     <CellWrapper>
@@ -346,7 +340,7 @@ const SeoViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
     </CellWrapper>
     <CellWrapper>
       <div className="inline-flex items-center px-2 py-0.5 bg-[#f1f1ef] rounded text-sm font-medium text-[#37352f]">
-        {rec.final_score}
+        {rec.seo_opportunity_score}
       </div>
     </CellWrapper>
   </>

@@ -28,6 +28,7 @@ import {
   FileText,
   Users,
   LayoutIcon,
+  Info,
 } from "lucide-react"
 import { WhySection } from "./WhySection"
 
@@ -114,28 +115,27 @@ export function RecommendationsTable({
   }
 
   const views: { id: View; label: string; icon: React.ReactNode }[] = [
-    { id: "overall", label: "Overall", icon: <BarChartHorizontal className="w-4 h-4 mr-2" /> },
-    { id: "ai", label: "AI Scores", icon: <Bot className="w-4 h-4 mr-2" /> },
-    { id: "seo", label: "SEO Scores", icon: <Sparkles className="w-4 h-4 mr-2" /> },
+    { id: "overall", label: "Overall", icon: <BarChartHorizontal className="w-4 h-4 mr-1.5" /> },
+    { id: "ai", label: "AI Scores", icon: <Bot className="w-4 h-4 mr-1.5" /> },
+    { id: "seo", label: "SEO Scores", icon: <Sparkles className="w-4 h-4 mr-1.5" /> },
   ]
 
   const columnConfig = {
     overall: {
-      gridClass: "grid-cols-[minmax(380px,2.5fr)_80px_100px_100px_120px_100px_90px_110px_80px]",
+      gridClass: "grid-cols-[minmax(0,2.5fr)_60px_80px_80px_100px_80px_70px_70px]",
       headers: [
         { label: "Prompt" },
         { label: "Score", icon: Trophy },
-        { label: "AI Score", icon: TrendingUp },
-        { label: "SEO Score", icon: Target },
+        { label: "AI", icon: TrendingUp },
+        { label: "SEO", icon: Target },
         { label: "Volume", icon: Search },
         { label: "Difficulty", icon: Shield },
         { label: "CPC", icon: DollarSign },
-        { label: "AI Citations", icon: Sparkles },
         { label: "Actions" },
       ],
     },
     ai: {
-      gridClass: "grid-cols-[minmax(380px,2.5fr)_100px_100px_100px_120px_130px_100px_110px]",
+      gridClass: "grid-cols-[minmax(0,2.5fr)_100px_100px_100px_120px_130px_100px_110px]",
       headers: [
         { label: "Prompt" },
         { label: "AI Score", icon: TrendingUp },
@@ -148,7 +148,7 @@ export function RecommendationsTable({
       ],
     },
     seo: {
-      gridClass: "grid-cols-[minmax(380px,2.5fr)_100px_120px_100px_90px_100px_140px_110px]",
+      gridClass: "grid-cols-[minmax(0,2.5fr)_100px_120px_100px_90px_100px_140px_110px]",
       headers: [
         { label: "Prompt" },
         { label: "SEO Score", icon: Target },
@@ -184,45 +184,53 @@ export function RecommendationsTable({
         ))}
       </div>
 
-      <div className="w-full max-w-full overflow-x-auto">
-        <div className="min-w-[1200px]">
-          <div className="border border-[#e9e9e7] rounded-lg overflow-hidden">
-            {/* Header */}
-            <div
-              className={cn(
-                "grid items-center bg-[#f7f6f3] border-b border-[#e9e9e7] text-xs font-medium text-[#787774]",
-                currentConfig.gridClass,
-              )}
-            >
-              {currentConfig.headers.map((header) => (
-                <div key={header.label} className="px-4 py-2">
-                  {header.icon ? <HeaderCell icon={header.icon} label={header.label} /> : <span>{header.label}</span>}
+      {!selectedPrompt && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3 animate-in fade-in duration-300">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <p className="text-sm text-blue-900">
+            <span className="font-semibold">Click any prompt</span> in the table below to see detailed analysis and
+            reasoning.
+          </p>
+        </div>
+      )}
+
+      <div className="w-full border border-[#e9e9e7] rounded-lg overflow-hidden">
+        <div className="min-w-[1000px] overflow-x-auto">
+          {/* Header */}
+          <div
+            className={cn(
+              "grid items-center bg-[#f7f6f3] border-b border-[#e9e9e7] text-xs font-medium text-[#787774]",
+              currentConfig.gridClass,
+            )}
+          >
+            {currentConfig.headers.map((header) => (
+              <div key={header.label} className="px-4 py-2">
+                {header.icon ? <HeaderCell icon={header.icon} label={header.label} /> : <span>{header.label}</span>}
+              </div>
+            ))}
+          </div>
+          {/* Body */}
+          <div>
+            {recommendations.map((rec) => (
+              <div
+                key={rec.rank}
+                onClick={() => handleRowClick(rec)}
+                className={cn(
+                  "grid items-center border-b border-[#e9e9e7] group cursor-pointer transition-colors duration-150 min-h-[52px]",
+                  currentConfig.gridClass,
+                  selectedPrompt?.rank === rec.rank ? "bg-[#e3f2fd]" : "hover:bg-[#f7f6f3]",
+                )}
+              >
+                <div className="px-4 py-3">
+                  <PromptCell prompt={rec.prompt_text} />
                 </div>
-              ))}
-            </div>
-            {/* Body */}
-            <div>
-              {recommendations.map((rec) => (
-                <div
-                  key={rec.rank}
-                  onClick={() => handleRowClick(rec)}
-                  className={cn(
-                    "grid items-center border-b border-[#e9e9e7] group cursor-pointer transition-colors duration-150 min-h-[52px]",
-                    currentConfig.gridClass,
-                    selectedPrompt?.rank === rec.rank ? "bg-[#e3f2fd]" : "hover:bg-[#f7f6f3]",
-                  )}
-                >
-                  <div className="px-4 py-3">
-                    <PromptCell prompt={rec.prompt_text} />
-                  </div>
-                  {activeView === "overall" && (
-                    <OverallViewCells {...{ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt }} />
-                  )}
-                  {activeView === "ai" && <AiViewCells {...{ rec }} />}
-                  {activeView === "seo" && <SeoViewCells {...{ rec }} />}
-                </div>
-              ))}
-            </div>
+                {activeView === "overall" && (
+                  <OverallViewCells {...{ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt }} />
+                )}
+                {activeView === "ai" && <AiViewCells {...{ rec }} />}
+                {activeView === "seo" && <SeoViewCells {...{ rec }} />}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -248,17 +256,8 @@ const OverallViewCells = ({ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt 
       </Badge>
     </Cell>
     <Cell>${rec.cpc.toFixed(2)}</Cell>
-    <Cell className="text-[#787774]">
-      {rec.perplexity_cited && rec.gemini_cited
-        ? "Both"
-        : rec.perplexity_cited
-          ? "Perplexity"
-          : rec.gemini_cited
-            ? "Gemini"
-            : "None"}
-    </Cell>
-    <Cell>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <Cell className="justify-center">
+      <div className="flex items-center gap-1">
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>

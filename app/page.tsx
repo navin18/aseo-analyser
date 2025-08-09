@@ -7,7 +7,7 @@ import { Header } from "@/components/prompt-analyzer/Header"
 import { InputSection } from "@/components/prompt-analyzer/InputSection"
 import { ProcessingState } from "@/components/prompt-analyzer/ProcessingState"
 import { RecommendationsSection } from "@/components/prompt-analyzer/RecommendationsSection"
-import { PROCESSING_STEPS } from "@/lib/constants"
+import { STEP_TIMINGS } from "@/lib/constants"
 
 export default function NotionPromptAnalyzer() {
   const [analysisState, setAnalysisState] = useState<AnalysisState>("idle")
@@ -23,6 +23,7 @@ export default function NotionPromptAnalyzer() {
   const processingRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const promptsRef = useRef<HTMLDivElement>(null)
+  const stepTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const validateDomain = (url: string) => {
     const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/.*)?$/
@@ -39,6 +40,7 @@ export default function NotionPromptAnalyzer() {
   }
 
   const resetInterface = () => {
+    if (stepTimeoutRef.current) clearTimeout(stepTimeoutRef.current)
     setAnalysisState("idle")
     setPrompts([])
     setDomain("")
@@ -112,6 +114,13 @@ export default function NotionPromptAnalyzer() {
   const handleUpdatePrompt = (id: string, text: string) =>
     setPrompts(prompts.map((p) => (p.id === id ? { ...p, text } : p)))
 
+  const cleanupStepAnimation = () => {
+    if (stepTimeoutRef.current) {
+      clearTimeout(stepTimeoutRef.current)
+      stepTimeoutRef.current = null
+    }
+  }
+
   const getRecommendations = async () => {
     if (!domain || domainError || prompts.length < 5) {
       alert("Please add at least 5 prompts for analysis")
@@ -126,9 +135,16 @@ export default function NotionPromptAnalyzer() {
       processingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     }, 100)
 
-    const stepAnimationInterval = setInterval(() => {
-      setCurrentStep((prev) => (prev < PROCESSING_STEPS.length - 1 ? prev + 1 : prev))
-    }, 20000)
+    // Realistic step timing animation
+    const animateSteps = (stepIndex = 0) => {
+      if (stepIndex < STEP_TIMINGS.length) {
+        setCurrentStep(stepIndex)
+        stepTimeoutRef.current = setTimeout(() => {
+          animateSteps(stepIndex + 1)
+        }, STEP_TIMINGS[stepIndex])
+      }
+    }
+    animateSteps()
 
     try {
       const payload = { domain: domain.trim(), prompts: prompts.map((p) => p.text) }
@@ -152,19 +168,19 @@ export default function NotionPromptAnalyzer() {
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
           if (statusData.success && statusData.complete) {
-            clearInterval(stepAnimationInterval)
+            cleanupStepAnimation()
             setRecommendations(statusData.top_prompts)
             setAnalysisState("complete")
             setTimeout(() => {
-              resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }, 100)
+              resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" })
+            }, 300)
             return
           }
         }
       }
       throw new Error("Analysis timed out after 5 minutes. Please try again.")
     } catch (error) {
-      clearInterval(stepAnimationInterval)
+      cleanupStepAnimation()
       setAnalysisState("idle")
       const message = error instanceof Error ? error.message : "An unknown error occurred."
       alert(`Error: ${message}`)

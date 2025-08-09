@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, Clock } from "lucide-react"
+import { Loader2, Clock, CheckCircle } from "lucide-react"
 import { PROCESSING_STEPS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
@@ -11,13 +11,32 @@ interface ProcessingStateProps {
 
 export function ProcessingState({ currentStep }: ProcessingStateProps) {
   const [timeElapsed, setTimeElapsed] = useState(0)
+  const [currentSubStep, setCurrentSubStep] = useState(0)
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setTimeElapsed((prev) => prev + 1)
     }, 1000)
-    return () => clearInterval(interval)
+    return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    setCurrentSubStep(0) // Reset sub-step when main step changes
+    const currentStepData = PROCESSING_STEPS[currentStep]
+    if (currentStepData?.subSteps) {
+      let subIndex = 0
+      const subInterval = setInterval(() => {
+        if (subIndex < currentStepData.subSteps.length - 1) {
+          subIndex++
+          setCurrentSubStep(subIndex)
+        } else {
+          clearInterval(subInterval)
+        }
+      }, 3000) // Change sub-step every 3 seconds
+
+      return () => clearInterval(subInterval)
+    }
+  }, [currentStep])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -25,62 +44,73 @@ export function ProcessingState({ currentStep }: ProcessingStateProps) {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
   }
 
+  const currentStepData = PROCESSING_STEPS[currentStep]
   const progressPercentage = ((currentStep + 1) / PROCESSING_STEPS.length) * 100
 
   return (
-    <div className="p-6 bg-gradient-to-r from-[#f7f6f3] to-[#f1f1ef] border border-[#e9e9e7] rounded-lg animate-in fade-in duration-500">
+    <div className="p-6 bg-gradient-to-br from-[#f7f6f3] to-[#f1f1ef] border border-[#e9e9e7] rounded-lg">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Loader2 className="w-5 h-5 text-[#2383e2] animate-spin" />
-            <div className="absolute inset-0 w-5 h-5 bg-[#2383e2] opacity-20 blur-sm animate-pulse" />
+            <div className="absolute inset-0 w-5 h-5 bg-[#2383e2] opacity-20 blur-md animate-pulse" />
           </div>
           <span className="text-sm font-medium text-[#787774]">Processing</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-[#787774]">
-          <Clock className="w-4 h-4" />
-          <span className="font-mono tabular-nums">{formatTime(timeElapsed)}</span>
+        <div className="flex items-center gap-2 text-sm text-[#787774] bg-white px-3 py-1 rounded-full border border-[#e9e9e7]">
+          <Clock className="w-3.5 h-3.5" />
+          <span className="font-mono font-medium tabular-nums">{formatTime(timeElapsed)}</span>
         </div>
       </div>
 
-      <div className="mb-4 min-h-[60px]">
-        <div className="animate-in fade-in slide-in-from-left-2 duration-500" key={currentStep}>
-          <h4 className="text-base font-semibold text-[#37352f] mb-1">{PROCESSING_STEPS[currentStep]?.label}</h4>
-          <p className="text-sm text-[#787774]">{PROCESSING_STEPS[currentStep]?.description}</p>
-        </div>
+      <div className="mb-4">
+        <h4 className="text-lg font-semibold text-[#37352f] mb-1">{currentStepData?.label}</h4>
+        <p className="text-sm text-[#787774] mb-3">{currentStepData?.description}</p>
+
+        {currentStepData?.subSteps && (
+          <div className="ml-4 space-y-1.5">
+            {currentStepData.subSteps.map((subStep, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "flex items-center gap-2 text-xs transition-all duration-500",
+                  index <= currentSubStep ? "opacity-100" : "opacity-30",
+                )}
+              >
+                {index < currentSubStep ? (
+                  <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                ) : index === currentSubStep ? (
+                  <div className="w-3 h-3 rounded-full border-2 border-[#2383e2] border-t-transparent animate-spin flex-shrink-0" />
+                ) : (
+                  <div className="w-3 h-3 rounded-full border border-[#e9e9e7] flex-shrink-0" />
+                )}
+                <span
+                  className={cn(
+                    "transition-colors duration-300",
+                    index <= currentSubStep ? "text-[#37352f]" : "text-[#9b9a97]",
+                  )}
+                >
+                  {subStep}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 mt-6">
         <div className="flex justify-between text-xs text-[#787774]">
           <span>
             Step {currentStep + 1} of {PROCESSING_STEPS.length}
           </span>
-          <span>{Math.round(progressPercentage)}% complete</span>
+          <span>{Math.round(progressPercentage)}%</span>
         </div>
         <div className="relative w-full bg-[#e9e9e7] rounded-full h-2 overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#2383e2] to-[#1a6bb8] rounded-full transition-all duration-700 ease-out"
             style={{ width: `${progressPercentage}%` }}
-          >
-            <div className="absolute inset-0 bg-white opacity-20 animate-shimmer" />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-between">
-        {PROCESSING_STEPS.map((_, index) => (
-          <div
-            key={index}
-            className={cn(
-              "w-2 h-2 rounded-full transition-all duration-300",
-              index < currentStep
-                ? "bg-[#2383e2]"
-                : index === currentStep
-                  ? "bg-[#2383e2] animate-pulse"
-                  : "bg-[#e9e9e7]",
-            )}
           />
-        ))}
+        </div>
       </div>
     </div>
   )

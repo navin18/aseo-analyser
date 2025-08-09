@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef } from "react"
 import type { Prompt, RecommendedPrompt, AnalysisState } from "@/lib/types"
 import { Header } from "@/components/prompt-analyzer/Header"
 import { InputSection } from "@/components/prompt-analyzer/InputSection"
@@ -20,6 +19,10 @@ export default function NotionPromptAnalyzer() {
   const [selectedPrompt, setSelectedPrompt] = useState<RecommendedPrompt | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const processingRef = useRef<HTMLDivElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const promptsRef = useRef<HTMLDivElement>(null)
 
   const validateDomain = (url: string) => {
     const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/.*)?$/
@@ -45,6 +48,21 @@ export default function NotionPromptAnalyzer() {
     setSelectedPrompt(null)
     setCopiedId(null)
     setIsUploading(false)
+  }
+
+  const loadSampleData = () => {
+    resetInterface()
+    setDomain("stripe.com")
+    setPrompts([
+      { id: "1", text: "Best Stripe alternatives" },
+      { id: "2", text: "Best platform for international transactions" },
+      { id: "3", text: "What security features does Stripe offer for payment processing?" },
+      { id: "4", text: "How to integrate payments in e-commerce platforms?" },
+      { id: "5", text: "What are Stripe fees compared to other payment processors?" },
+    ])
+    setTimeout(() => {
+      promptsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 100)
   }
 
   const handleAddPrompt = (text: string) => {
@@ -104,36 +122,32 @@ export default function NotionPromptAnalyzer() {
     setCurrentStep(0)
     setSelectedPrompt(null)
 
+    setTimeout(() => {
+      processingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 100)
+
     const stepAnimationInterval = setInterval(() => {
       setCurrentStep((prev) => (prev < PROCESSING_STEPS.length - 1 ? prev + 1 : prev))
-    }, 20000) // ~2.5 minutes for all steps visually
+    }, 20000)
 
     try {
-      const payload = {
-        domain: domain.trim(),
-        prompts: prompts.map((p) => p.text),
-      }
-
+      const payload = { domain: domain.trim(), prompts: prompts.map((p) => p.text) }
       const startResponse = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-
       const startData = await startResponse.json()
-      if (!startResponse.ok || !startData.success) {
-        throw new Error(startData.message || "Failed to start analysis.")
-      }
+      if (!startResponse.ok || !startData.success) throw new Error(startData.message || "Failed to start analysis.")
       const { sessionId } = startData
 
       let attempts = 0
-      const maxAttempts = 60 // 60 attempts * 5 seconds = 5 minutes
+      const maxAttempts = 60
       const pollInterval = 5000
 
       while (attempts < maxAttempts) {
         attempts++
         await new Promise((resolve) => setTimeout(resolve, pollInterval))
-
         const statusResponse = await fetch(`/api/results/${sessionId}`)
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
@@ -141,11 +155,13 @@ export default function NotionPromptAnalyzer() {
             clearInterval(stepAnimationInterval)
             setRecommendations(statusData.top_prompts)
             setAnalysisState("complete")
+            setTimeout(() => {
+              resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }, 100)
             return
           }
         }
       }
-
       throw new Error("Analysis timed out after 5 minutes. Please try again.")
     } catch (error) {
       clearInterval(stepAnimationInterval)
@@ -175,34 +191,42 @@ export default function NotionPromptAnalyzer() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">
-        <Header onReset={resetInterface} />
+        <Header onReset={resetInterface} onLoadSampleData={loadSampleData} />
 
-        <InputSection
-          domain={domain}
-          onDomainChange={handleDomainChange}
-          domainError={domainError}
-          prompts={prompts}
-          onAddPrompt={handleAddPrompt}
-          onFileUpload={handleFileUpload}
-          onRemovePrompt={handleRemovePrompt}
-          onUpdatePrompt={handleUpdatePrompt}
-          isUploading={isUploading}
-          canGetRecommendations={canGetRecommendations}
-          analysisState={analysisState}
-          onGetRecommendations={getRecommendations}
-        />
+        <div ref={promptsRef}>
+          <InputSection
+            domain={domain}
+            onDomainChange={handleDomainChange}
+            domainError={domainError}
+            prompts={prompts}
+            onAddPrompt={handleAddPrompt}
+            onFileUpload={handleFileUpload}
+            onRemovePrompt={handleRemovePrompt}
+            onUpdatePrompt={handleUpdatePrompt}
+            isUploading={isUploading}
+            canGetRecommendations={canGetRecommendations}
+            analysisState={analysisState}
+            onGetRecommendations={getRecommendations}
+          />
+        </div>
 
-        {analysisState === "processing" && <ProcessingState currentStep={currentStep} />}
+        {analysisState === "processing" && (
+          <div ref={processingRef}>
+            <ProcessingState currentStep={currentStep} />
+          </div>
+        )}
 
         {analysisState === "complete" && recommendations.length > 0 && (
-          <RecommendationsSection
-            recommendations={recommendations}
-            selectedPrompt={selectedPrompt}
-            copiedId={copiedId}
-            onSelectPrompt={setSelectedPrompt}
-            onCopyPrompt={handleCopyPrompt}
-            onAddRecommendedPrompt={handleAddRecommendedPrompt}
-          />
+          <div ref={resultsRef}>
+            <RecommendationsSection
+              recommendations={recommendations}
+              selectedPrompt={selectedPrompt}
+              copiedId={copiedId}
+              onSelectPrompt={setSelectedPrompt}
+              onCopyPrompt={handleCopyPrompt}
+              onAddRecommendedPrompt={handleAddRecommendedPrompt}
+            />
+          </div>
         )}
       </div>
     </div>

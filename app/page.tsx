@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { Prompt, RecommendedPrompt, AnalysisState } from "@/lib/types"
 import { Header } from "@/components/prompt-analyzer/Header"
 import { InputSection } from "@/components/prompt-analyzer/InputSection"
@@ -19,11 +19,22 @@ export default function NotionPromptAnalyzer() {
   const [selectedPrompt, setSelectedPrompt] = useState<RecommendedPrompt | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isAwaitingFinalResults, setIsAwaitingFinalResults] = useState(false)
 
   const processingRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const promptsRef = useRef<HTMLDivElement>(null)
   const stepTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (selectedPrompt && resultsRef.current) {
+      const topOfElement = resultsRef.current.offsetTop - 20 // 20px buffer
+      window.scrollTo({
+        top: topOfElement,
+        behavior: "smooth",
+      })
+    }
+  }, [selectedPrompt])
 
   const validateDomain = (url: string) => {
     const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/.*)?$/
@@ -50,6 +61,7 @@ export default function NotionPromptAnalyzer() {
     setSelectedPrompt(null)
     setCopiedId(null)
     setIsUploading(false)
+    setIsAwaitingFinalResults(false)
   }
 
   const loadSampleData = () => {
@@ -69,7 +81,7 @@ export default function NotionPromptAnalyzer() {
 
   const handleAddPrompt = (text: string) => {
     const promptTexts = text
-      .split(",")
+      .split(/[\n,]+/)
       .map((p) => p.trim())
       .filter((p) => p.length > 0)
     const newPrompts: Prompt[] = promptTexts.map((t) => ({ id: Date.now().toString() + Math.random(), text: t }))
@@ -130,15 +142,18 @@ export default function NotionPromptAnalyzer() {
     setAnalysisState("processing")
     setCurrentStep(0)
     setSelectedPrompt(null)
+    setIsAwaitingFinalResults(false)
 
     setTimeout(() => {
       processingRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     }, 100)
 
-    // Realistic step timing animation
     const animateSteps = (stepIndex = 0) => {
       if (stepIndex < STEP_TIMINGS.length) {
         setCurrentStep(stepIndex)
+        if (stepIndex === STEP_TIMINGS.length - 1) {
+          setIsAwaitingFinalResults(true)
+        }
         stepTimeoutRef.current = setTimeout(() => {
           animateSteps(stepIndex + 1)
         }, STEP_TIMINGS[stepIndex])
@@ -172,7 +187,7 @@ export default function NotionPromptAnalyzer() {
             setRecommendations(statusData.top_prompts)
             setAnalysisState("complete")
             setTimeout(() => {
-              resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" })
+              resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
             }, 300)
             return
           }
@@ -228,7 +243,7 @@ export default function NotionPromptAnalyzer() {
 
         {analysisState === "processing" && (
           <div ref={processingRef}>
-            <ProcessingState currentStep={currentStep} />
+            <ProcessingState currentStep={currentStep} isAwaitingResults={isAwaitingFinalResults} />
           </div>
         )}
 

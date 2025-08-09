@@ -26,7 +26,7 @@ export function Header({ onReset, onLoadSampleData }: HeaderProps) {
                 onClick={onLoadSampleData}
                 className="h-9 px-3 text-sm font-medium bg-[#2383e2] hover:bg-[#1a6bb8] text-white rounded-md transition-all duration-200"
               >
-                <FileText className="w-4 h-4 mr-2" />
+                <FileText className="w-4 h-4 mr-1.5" />
                 Sample Data
               </Button>
             </TooltipTrigger>

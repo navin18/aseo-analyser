@@ -92,10 +92,18 @@ const PromptCell = ({ prompt }: { prompt: string }) => {
   )
 }
 
-const HeaderCell = ({ icon: Icon, label }: { icon: React.ElementType; label: string }) => (
-  <div className="flex items-center gap-1.5">
-    <Icon className="w-3.5 h-3.5 text-current" />
-    <span>{label}</span>
+const HeaderCell = ({
+  icon: Icon,
+  label,
+  align = "left",
+}: {
+  icon?: React.ElementType
+  label: string
+  align?: "left" | "center"
+}) => (
+  <div className={cn("flex items-center gap-1.5", align === "center" && "justify-center")}>
+    {Icon && <Icon className="w-3.5 h-3.5 text-current" />}
+    <span className="whitespace-nowrap">{label}</span>
   </div>
 )
 
@@ -122,42 +130,42 @@ export function RecommendationsTable({
 
   const columnConfig = {
     overall: {
-      gridClass: "grid-cols-[minmax(0,2.5fr)_60px_80px_80px_100px_80px_70px_70px]",
+      gridClass: "grid-cols-[minmax(0,1fr)_90px_80px_80px_100px_110px_80px_90px]",
       headers: [
         { label: "Prompt" },
-        { label: "Score", icon: Trophy },
-        { label: "AI", icon: TrendingUp },
-        { label: "SEO", icon: Target },
-        { label: "Volume", icon: Search },
-        { label: "Difficulty", icon: Shield },
-        { label: "CPC", icon: DollarSign },
-        { label: "Actions" },
+        { label: "Score", icon: Trophy, align: "center" },
+        { label: "AI", icon: TrendingUp, align: "center" },
+        { label: "SEO", icon: Target, align: "center" },
+        { label: "Volume", icon: Search, align: "center" },
+        { label: "Difficulty", icon: Shield, align: "center" },
+        { label: "CPC", icon: DollarSign, align: "center" },
+        { label: "Actions", align: "center" },
       ],
     },
     ai: {
-      gridClass: "grid-cols-[minmax(0,2.5fr)_100px_100px_100px_120px_130px_100px_110px]",
+      gridClass: "grid-cols-[minmax(0,1fr)_100px_100px_100px_120px_130px_100px_110px]",
       headers: [
         { label: "Prompt" },
-        { label: "AI Score", icon: TrendingUp },
-        { label: "Perplexity", icon: Globe },
-        { label: "Gemini", icon: Star },
-        { label: "Citation Rank", icon: Hash },
-        { label: "First Paragraph", icon: FileText },
-        { label: "Consensus", icon: Users },
-        { label: "Total Score", icon: Trophy },
+        { label: "AI Score", icon: TrendingUp, align: "center" },
+        { label: "Perplexity", icon: Globe, align: "center" },
+        { label: "Gemini", icon: Star, align: "center" },
+        { label: "Citation Rank", icon: Hash, align: "center" },
+        { label: "First Para", icon: FileText, align: "center" },
+        { label: "Consensus", icon: Users, align: "center" },
+        { label: "Total Score", icon: Trophy, align: "center" },
       ],
     },
     seo: {
-      gridClass: "grid-cols-[minmax(0,2.5fr)_100px_120px_100px_90px_100px_140px_110px]",
+      gridClass: "grid-cols-[minmax(0,1fr)_100px_120px_100px_90px_100px_140px_110px]",
       headers: [
         { label: "Prompt" },
-        { label: "SEO Score", icon: Target },
-        { label: "Volume", icon: Search },
-        { label: "Difficulty", icon: Shield },
-        { label: "CPC", icon: DollarSign },
-        { label: "Trend YoY", icon: TrendingUp },
-        { label: "SERP Features", icon: LayoutIcon },
-        { label: "Total Score", icon: Trophy },
+        { label: "SEO Score", icon: Target, align: "center" },
+        { label: "Volume", icon: Search, align: "center" },
+        { label: "Difficulty", icon: Shield, align: "center" },
+        { label: "CPC", icon: DollarSign, align: "center" },
+        { label: "Trend YoY", icon: TrendingUp, align: "center" },
+        { label: "SERP Features", icon: LayoutIcon, align: "center" },
+        { label: "Total Score", icon: Trophy, align: "center" },
       ],
     },
   }
@@ -184,7 +192,7 @@ export function RecommendationsTable({
         ))}
       </div>
 
-      {!selectedPrompt && (
+      {!selectedPrompt && recommendations.length > 0 && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3 animate-in fade-in duration-300">
           <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
           <p className="text-sm text-blue-900">
@@ -195,7 +203,7 @@ export function RecommendationsTable({
       )}
 
       <div className="w-full border border-[#e9e9e7] rounded-lg overflow-hidden">
-        <div className="min-w-[1000px] overflow-x-auto">
+        <div className="overflow-x-auto">
           {/* Header */}
           <div
             className={cn(
@@ -203,9 +211,9 @@ export function RecommendationsTable({
               currentConfig.gridClass,
             )}
           >
-            {currentConfig.headers.map((header) => (
-              <div key={header.label} className="px-4 py-2">
-                {header.icon ? <HeaderCell icon={header.icon} label={header.label} /> : <span>{header.label}</span>}
+            {currentConfig.headers.map((header, index) => (
+              <div key={index} className="px-4 py-2">
+                <HeaderCell {...header} />
               </div>
             ))}
           </div>
@@ -240,23 +248,37 @@ export function RecommendationsTable({
 }
 
 // --- VIEW-SPECIFIC CELL RENDERERS ---
-const Cell: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={cn("px-4 py-3 flex items-center text-sm text-[#37352f]", className)}>{children}</div>
+const Cell: React.FC<{ children: React.ReactNode; className?: string; align?: "left" | "center" }> = ({
+  children,
+  className,
+  align = "left",
+}) => (
+  <div
+    className={cn(
+      "px-4 py-3 flex items-center text-sm text-[#37352f]",
+      align === "center" && "justify-center",
+      className,
+    )}
+  >
+    {children}
+  </div>
 )
 
 const OverallViewCells = ({ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt }: any) => (
   <>
-    <Cell className="font-medium">{rec.final_score}</Cell>
-    <Cell>{rec.ai_opportunity_score}%</Cell>
-    <Cell>{rec.seo_opportunity_score}%</Cell>
-    <Cell>{rec.search_volume.toLocaleString()}</Cell>
-    <Cell>
+    <Cell align="center" className="font-medium">
+      {rec.final_score}
+    </Cell>
+    <Cell align="center">{rec.ai_opportunity_score}%</Cell>
+    <Cell align="center">{rec.seo_opportunity_score}%</Cell>
+    <Cell align="center">{rec.search_volume.toLocaleString()}</Cell>
+    <Cell align="center">
       <Badge className={cn("border-0 text-xs px-2 py-0.5", getDifficultyBadgeColor(rec.keyword_difficulty))}>
         KD: {rec.keyword_difficulty}
       </Badge>
     </Cell>
-    <Cell>${rec.cpc.toFixed(2)}</Cell>
-    <Cell className="justify-center">
+    <Cell align="center">${rec.cpc.toFixed(2)}</Cell>
+    <Cell align="center">
       <div className="flex items-center gap-1">
         <TooltipProvider delayDuration={100}>
           <Tooltip>
@@ -303,17 +325,17 @@ const OverallViewCells = ({ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt 
 
 const AiViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
   <>
-    <Cell>{rec.ai_opportunity_score}%</Cell>
-    <Cell>
+    <Cell align="center">{rec.ai_opportunity_score}%</Cell>
+    <Cell align="center">
       <BooleanIndicator value={rec.perplexity_cited} />
     </Cell>
-    <Cell>
+    <Cell align="center">
       <BooleanIndicator value={rec.gemini_cited} />
     </Cell>
-    <Cell className="text-[#787774]">{`P: ${rec.perplexity_citation_rank || "N/A"}, G: ${
+    <Cell align="center" className="text-[#787774]">{`P: ${rec.perplexity_citation_rank || "N/A"}, G: ${
       rec.gemini_citation_rank || "N/A"
     }`}</Cell>
-    <Cell className="text-[#787774]">
+    <Cell align="center" className="text-[#787774]">
       {rec.perplexity_first_paragraph && rec.gemini_first_paragraph
         ? "Both"
         : rec.perplexity_first_paragraph
@@ -322,22 +344,25 @@ const AiViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
             ? "Gemini"
             : "None"}
     </Cell>
-    <Cell>{Math.round(rec.engine_consensus * 100)}%</Cell>
-    <Cell className="font-medium">{rec.ai_opportunity_score}</Cell>
+    <Cell align="center">{Math.round(rec.engine_consensus * 100)}%</Cell>
+    <Cell align="center" className="font-medium">
+      {rec.ai_opportunity_score}
+    </Cell>
   </>
 )
 
 const SeoViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
   <>
-    <Cell>{rec.seo_opportunity_score}%</Cell>
-    <Cell>{rec.search_volume.toLocaleString()}</Cell>
-    <Cell>
+    <Cell align="center">{rec.seo_opportunity_score}%</Cell>
+    <Cell align="center">{rec.search_volume.toLocaleString()}</Cell>
+    <Cell align="center">
       <Badge className={cn("border-0 text-xs px-2 py-0.5", getDifficultyBadgeColor(rec.keyword_difficulty))}>
         KD: {rec.keyword_difficulty}
       </Badge>
     </Cell>
-    <Cell>${rec.cpc.toFixed(2)}</Cell>
+    <Cell align="center">${rec.cpc.toFixed(2)}</Cell>
     <Cell
+      align="center"
       className={cn(
         "font-medium",
         rec.trend_yoy > 0 ? "text-green-600" : rec.trend_yoy < 0 ? "text-red-600" : "text-[#787774]",
@@ -346,9 +371,11 @@ const SeoViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
       {rec.trend_yoy > 0 ? "+" : ""}
       {rec.trend_yoy.toFixed(1)}%
     </Cell>
-    <Cell>
+    <Cell align="center">
       <SerpFeatures rec={rec} />
     </Cell>
-    <Cell className="font-medium">{rec.seo_opportunity_score}</Cell>
+    <Cell align="center" className="font-medium">
+      {rec.seo_opportunity_score}
+    </Cell>
   </>
 )

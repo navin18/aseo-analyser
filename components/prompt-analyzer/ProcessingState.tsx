@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, Clock, CheckCircle } from "lucide-react"
+import { Clock, CheckCircle } from "lucide-react"
 import { PROCESSING_STEPS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
 interface ProcessingStateProps {
   currentStep: number
+  isAwaitingResults: boolean
 }
 
-export function ProcessingState({ currentStep }: ProcessingStateProps) {
+export function ProcessingState({ currentStep, isAwaitingResults }: ProcessingStateProps) {
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [currentSubStep, setCurrentSubStep] = useState(0)
 
@@ -21,8 +22,16 @@ export function ProcessingState({ currentStep }: ProcessingStateProps) {
   }, [])
 
   useEffect(() => {
-    setCurrentSubStep(0) // Reset sub-step when main step changes
+    const lastStepIndex = PROCESSING_STEPS.length - 1
     const currentStepData = PROCESSING_STEPS[currentStep]
+    const lastSubStepIndex = (currentStepData?.subSteps?.length || 1) - 1
+
+    if (isAwaitingResults && currentStep === lastStepIndex) {
+      setCurrentSubStep(lastSubStepIndex)
+      return
+    }
+
+    setCurrentSubStep(0)
     if (currentStepData?.subSteps) {
       let subIndex = 0
       const subInterval = setInterval(() => {
@@ -32,11 +41,11 @@ export function ProcessingState({ currentStep }: ProcessingStateProps) {
         } else {
           clearInterval(subInterval)
         }
-      }, 3000) // Change sub-step every 3 seconds
+      }, 3000)
 
       return () => clearInterval(subInterval)
     }
-  }, [currentStep])
+  }, [currentStep, isAwaitingResults])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -49,14 +58,7 @@ export function ProcessingState({ currentStep }: ProcessingStateProps) {
 
   return (
     <div className="p-6 bg-gradient-to-br from-[#f7f6f3] to-[#f1f1ef] border border-[#e9e9e7] rounded-lg">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Loader2 className="w-5 h-5 text-[#2383e2] animate-spin" />
-            <div className="absolute inset-0 w-5 h-5 bg-[#2383e2] opacity-20 blur-md animate-pulse" />
-          </div>
-          <span className="text-sm font-medium text-[#787774]">Processing</span>
-        </div>
+      <div className="flex justify-end items-start mb-4">
         <div className="flex items-center gap-2 text-sm text-[#787774] bg-white px-3 py-1 rounded-full border border-[#e9e9e7]">
           <Clock className="w-3.5 h-3.5" />
           <span className="font-mono font-medium tabular-nums">{formatTime(timeElapsed)}</span>

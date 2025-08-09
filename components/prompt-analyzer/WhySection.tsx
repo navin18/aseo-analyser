@@ -1,32 +1,28 @@
 import type { RecommendedPrompt } from "@/lib/types"
 
 interface WhySectionProps {
-  selectedPrompt: RecommendedPrompt | null
+  prompt: RecommendedPrompt
 }
 
-export function WhySection({ selectedPrompt }: WhySectionProps) {
-  if (!selectedPrompt) return null
-
+export function WhySection({ prompt }: WhySectionProps) {
   return (
-    <div className="p-4 bg-[#f0f9ff] border border-[#bae6fd] rounded-md animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 bg-[#2383e2] rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-sm font-medium">?</span>
+    <div className="mt-4 p-4 bg-[#f7f6f3] rounded-lg border border-[#e9e9e7] animate-in fade-in duration-300">
+      <div className="mb-3">
+        <h4 className="text-sm font-semibold text-[#37352f] mb-1">Why this prompt is recommended</h4>
+      </div>
+      <p className="text-sm text-[#37352f] leading-relaxed mb-4">{prompt.score_reasoning}</p>
+      <div className="flex items-center gap-6 pt-3 border-t border-[#e9e9e7]">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#787774]">Final Score:</span>
+          <span className="text-xs font-semibold text-[#37352f]">{prompt.final_score}</span>
         </div>
-        <div className="flex-1">
-          <h4 className="text-sm font-medium text-[#37352f] mb-2">Why this prompt is recommended</h4>
-          <p className="text-sm text-[#787774] leading-relaxed">{selectedPrompt.score_reasoning}</p>
-          <div className="mt-3 flex items-center gap-4 text-xs text-[#9b9a97]">
-            <span>
-              Final Score: <span className="font-medium text-[#37352f]">{selectedPrompt.final_score}</span>
-            </span>
-            <span>
-              AI Score: <span className="font-medium text-[#37352f]">{selectedPrompt.ai_opportunity_score}</span>
-            </span>
-            <span>
-              SEO Score: <span className="font-medium text-[#37352f]">{selectedPrompt.seo_opportunity_score}</span>
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#787774]">AI Score:</span>
+          <span className="text-xs font-semibold text-[#37352f]">{prompt.ai_opportunity_score}%</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#787774]">SEO Score:</span>
+          <span className="text-xs font-semibold text-[#37352f]">{prompt.seo_opportunity_score}%</span>
         </div>
       </div>
     </div>

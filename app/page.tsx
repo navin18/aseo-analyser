@@ -102,6 +102,7 @@ export default function NotionPromptAnalyzer() {
 
     setAnalysisState("processing")
     setCurrentStep(0)
+    setSelectedPrompt(null)
 
     const stepAnimationInterval = setInterval(() => {
       setCurrentStep((prev) => (prev < PROCESSING_STEPS.length - 1 ? prev + 1 : prev))
@@ -196,7 +197,6 @@ export default function NotionPromptAnalyzer() {
         {analysisState === "complete" && recommendations.length > 0 && (
           <RecommendationsSection
             recommendations={recommendations}
-            domain={domain}
             selectedPrompt={selectedPrompt}
             copiedId={copiedId}
             onSelectPrompt={setSelectedPrompt}

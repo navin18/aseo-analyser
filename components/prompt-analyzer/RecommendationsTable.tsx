@@ -1,25 +1,70 @@
 "use client"
 
+import type React from "react"
+
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { RecommendedPrompt } from "@/lib/types"
-import { TrendingUp, Target, Search, BarChart3, Copy, Check, Plus } from "lucide-react"
+import {
+  Copy,
+  Check,
+  Plus,
+  TrendingUp,
+  Target,
+  Search,
+  DollarSign,
+  CheckCircle2,
+  XCircle,
+  BarChartHorizontal,
+  Bot,
+  Sparkles,
+} from "lucide-react"
+import { WhySection } from "./WhySection"
 
 interface RecommendationsTableProps {
   recommendations: RecommendedPrompt[]
   selectedPrompt: RecommendedPrompt | null
   copiedId: string | null
-  onSelectPrompt: (prompt: RecommendedPrompt) => void
+  onSelectPrompt: (prompt: RecommendedPrompt | null) => void
   onCopyPrompt: (text: string, id: string) => void
   onAddRecommendedPrompt: (prompt: RecommendedPrompt) => void
 }
 
+type View = "overall" | "ai" | "seo"
+
 const getDifficultyBadgeColor = (difficulty: number) => {
-  if (difficulty < 30) return "bg-[#edfced] text-[#0f7b0f] border-[#d3f5d3]"
-  if (difficulty < 60) return "bg-[#fef3c7] text-[#d97706] border-[#fbbf24]"
-  return "bg-[#fdf2f2] text-[#eb5757] border-[#fca5a5]"
+  if (difficulty < 30) return "bg-[#e9f5e9] text-[#0f7b0f]"
+  if (difficulty < 60) return "bg-[#fef3c7] text-[#b45309]"
+  return "bg-[#fdecec] text-[#c81e1e]"
 }
+
+const BooleanIndicator = ({ value }: { value: boolean }) =>
+  value ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-gray-400" />
+
+const SerpFeatures = ({ rec }: { rec: RecommendedPrompt }) => (
+  <div className="flex items-center gap-1.5 flex-wrap">
+    {rec.has_featured_snippet && (
+      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
+        Snippet
+      </Badge>
+    )}
+    {rec.has_paa && (
+      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
+        PAA
+      </Badge>
+    )}
+    {rec.has_ai_overview && (
+      <Badge variant="outline" className="text-xs font-normal border-[#e9e9e7] bg-white">
+        AI Overview
+      </Badge>
+    )}
+    {!rec.has_featured_snippet && !rec.has_paa && !rec.has_ai_overview && (
+      <span className="text-xs text-[#787774]">None</span>
+    )}
+  </div>
+)
 
 export function RecommendationsTable({
   recommendations,
@@ -29,114 +74,280 @@ export function RecommendationsTable({
   onCopyPrompt,
   onAddRecommendedPrompt,
 }: RecommendationsTableProps) {
-  return (
-    <div className="bg-white border border-[#e9e9e7] rounded-lg overflow-hidden animate-in fade-in duration-500">
-      <div className="grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_1fr_1.5fr_1fr] gap-3 p-3 bg-[#f7f6f3] border-b border-[#e9e9e7] text-xs font-medium text-[#787774]">
-        <div>Prompt</div>
-        <div>Final Score</div>
-        <div>AI Score</div>
-        <div>SEO Score</div>
-        <div>Search Volume</div>
-        <div>Difficulty</div>
-        <div>CPC</div>
-        <div>AI Citations</div>
-        <div>Actions</div>
-      </div>
+  const [activeView, setActiveView] = useState<View>("overall")
 
-      {recommendations.map((rec, index) => (
+  const handleRowClick = (rec: RecommendedPrompt) => {
+    if (selectedPrompt?.rank === rec.rank) {
+      onSelectPrompt(null) // Deselect if clicking the same row
+    } else {
+      onSelectPrompt(rec)
+    }
+  }
+
+  const views: { id: View; label: string; icon: React.ReactNode }[] = [
+    { id: "overall", label: "Overall", icon: <BarChartHorizontal className="w-4 h-4 mr-2" /> },
+    { id: "ai", label: "AI Scores", icon: <Bot className="w-4 h-4 mr-2" /> },
+    { id: "seo", label: "SEO Scores", icon: <Sparkles className="w-4 h-4 mr-2" /> },
+  ]
+
+  const renderTable = () => {
+    const headers = {
+      overall: [
+        "Prompt",
+        "Final Score",
+        "AI Score",
+        "SEO Score",
+        "Search Vol",
+        "Difficulty",
+        "CPC",
+        "AI Citations",
+        "Actions",
+      ],
+      ai: [
+        "Prompt",
+        "AI Score",
+        "Perplexity",
+        "Gemini",
+        "Citation Rank",
+        "First Paragraph",
+        "Consensus",
+        "Total Score",
+      ],
+      seo: ["Prompt", "SEO Score", "Search Volume", "Difficulty", "CPC", "Trend YoY", "SERP Features", "Total Score"],
+    }
+    const gridConfig = {
+      overall: "grid-cols-[minmax(0,4fr)_repeat(8,minmax(0,1fr))]",
+      ai: "grid-cols-[minmax(0,4fr)_repeat(7,minmax(0,1fr))]",
+      seo: "grid-cols-[minmax(0,4fr)_repeat(7,minmax(0,1fr))]",
+    }
+
+    return (
+      <div className="border border-[#e9e9e7] rounded-lg overflow-hidden">
+        {/* Header */}
         <div
-          key={rec.rank}
-          className={cn(
-            "grid grid-cols-[3fr_1fr_1fr_1fr_1fr_1fr_1fr_1.5fr_1fr] gap-3 p-3 border-b border-[#e9e9e7] hover:bg-[#f7f6f3] transition-all duration-200 group cursor-pointer animate-in fade-in slide-in-from-bottom-4",
-            selectedPrompt?.rank === rec.rank && "bg-[#e3f2fd] border-[#bbdefb]",
-          )}
-          style={{ animationDelay: `${index * 100}ms` }}
-          onClick={() => onSelectPrompt(rec)}
+          className={cn("grid gap-3 items-center p-2 bg-[#f7f6f3] border-b border-[#e9e9e7]", gridConfig[activeView])}
         >
-          <div className="min-w-0 pr-2">
-            <p className="text-sm text-[#37352f] font-medium leading-tight line-clamp-2">{rec.prompt_text}</p>
-          </div>
-          <div className="min-w-0">
-            <Badge
-              variant="secondary"
-              className="text-xs px-2 py-1 bg-[#f1f1ef] text-[#787774] border-0 whitespace-nowrap max-w-full truncate"
-            >
-              {rec.final_score}
-            </Badge>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-[#787774] flex-shrink-0" />
-              <span className="text-xs text-[#37352f] truncate">{rec.ai_opportunity_score}%</span>
+          {headers[activeView].map((header) => (
+            <div key={header} className="text-xs font-medium text-[#787774] px-2">
+              {header}
             </div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <Target className="w-3 h-3 text-[#787774] flex-shrink-0" />
-              <span className="text-xs text-[#37352f] truncate">{rec.seo_opportunity_score}%</span>
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <Search className="w-3 h-3 text-[#787774] flex-shrink-0" />
-              <span className="text-xs text-[#37352f] truncate">{rec.search_volume.toLocaleString()}</span>
-            </div>
-          </div>
-          <div className="min-w-0">
-            <Badge
+          ))}
+        </div>
+        {/* Body */}
+        <div>
+          {recommendations.map((rec) => (
+            <div
+              key={rec.rank}
+              onClick={() => handleRowClick(rec)}
               className={cn(
-                "text-xs px-2 py-1 border whitespace-nowrap",
-                getDifficultyBadgeColor(rec.keyword_difficulty),
+                "grid gap-3 items-center border-b border-[#e9e9e7] group cursor-pointer transition-colors duration-150",
+                gridConfig[activeView],
+                selectedPrompt?.rank === rec.rank ? "bg-[#e3f2fd]" : "hover:bg-[#f7f6f3]",
               )}
             >
-              KD: {rec.keyword_difficulty}
-            </Badge>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <BarChart3 className="w-3 h-3 text-[#787774] flex-shrink-0" />
-              <span className="text-xs font-medium text-[#37352f] truncate">${rec.cpc.toFixed(2)}</span>
+              {/* Common Prompt Cell */}
+              <div className="p-3 min-w-0">
+                <p className="text-sm font-semibold text-[#37352f] leading-snug line-clamp-2">{rec.prompt_text}</p>
+              </div>
+
+              {/* View-specific cells */}
+              {activeView === "overall" && (
+                <OverallViewCells {...{ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt }} />
+              )}
+              {activeView === "ai" && <AiViewCells {...{ rec }} />}
+              {activeView === "seo" && <SeoViewCells {...{ rec }} />}
             </div>
-          </div>
-          <div className="min-w-0">
-            <span className="text-xs text-[#9b9a97] truncate block">
-              {rec.perplexity_cited && rec.gemini_cited
-                ? "Both AI"
-                : rec.perplexity_cited
-                  ? "Perplexity"
-                  : rec.gemini_cited
-                    ? "Gemini"
-                    : "None"}
-            </span>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onCopyPrompt(rec.prompt_text, rec.rank.toString())
-                }}
-                className="h-6 w-6 p-0 text-[#9b9a97] hover:text-[#37352f] hover:bg-[#e9e9e7] transition-all duration-200"
-              >
-                {copiedId === rec.rank.toString() ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onAddRecommendedPrompt(rec)
-                }}
-                className="h-6 w-6 p-0 text-[#9b9a97] hover:text-[#2383e2] hover:bg-[#e3f2fd] transition-all duration-200"
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
+          ))}
         </div>
-      ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full">
+      <div className="flex items-center gap-6 mb-3 border-b border-[#e9e9e7]">
+        {views.map((view) => (
+          <button
+            key={view.id}
+            onClick={() => setActiveView(view.id)}
+            className={cn(
+              "flex items-center py-2 px-1 text-sm transition-colors duration-150",
+              activeView === view.id
+                ? "text-[#37352f] font-medium border-b-2 border-[#37352f]"
+                : "text-[#787774] hover:text-[#37352f] border-b-2 border-transparent",
+            )}
+          >
+            {view.icon}
+            {view.label}
+          </button>
+        ))}
+      </div>
+      {renderTable()}
+      {selectedPrompt && <WhySection prompt={selectedPrompt} />}
     </div>
   )
 }
+
+// Sub-components for cells in each view
+const CellWrapper: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <div className={cn("px-3 py-2 flex items-center min-w-0", className)}>{children}</div>
+)
+
+const OverallViewCells = ({ rec, copiedId, onCopyPrompt, onAddRecommendedPrompt }: any) => (
+  <>
+    <CellWrapper>
+      <div className="inline-flex items-center px-2 py-0.5 bg-[#f1f1ef] rounded text-sm font-medium text-[#37352f]">
+        {rec.final_score}
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <TrendingUp className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.ai_opportunity_score}%</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <Target className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.seo_opportunity_score}%</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <Search className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.search_volume.toLocaleString()}</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <Badge className={cn("border-0 text-xs px-2 py-0.5", getDifficultyBadgeColor(rec.keyword_difficulty))}>
+        KD: {rec.keyword_difficulty}
+      </Badge>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <DollarSign className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">${rec.cpc.toFixed(2)}</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <span className="text-sm text-[#787774]">
+        {rec.perplexity_cited && rec.gemini_cited
+          ? "Both"
+          : rec.perplexity_cited
+            ? "Perplexity"
+            : rec.gemini_cited
+              ? "Gemini"
+              : "None"}
+      </span>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 p-1 hover:bg-[#e9e9e7] rounded"
+          onClick={(e) => {
+            e.stopPropagation()
+            onCopyPrompt(rec.prompt_text, rec.rank.toString())
+          }}
+        >
+          {copiedId === rec.rank.toString() ? (
+            <Check className="w-4 h-4 text-blue-600" />
+          ) : (
+            <Copy className="w-3.5 h-3.5 text-[#787774]" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 p-1 hover:bg-[#e9e9e7] rounded"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAddRecommendedPrompt(rec)
+          }}
+        >
+          <Plus className="w-3.5 h-3.5 text-[#787774]" />
+        </Button>
+      </div>
+    </CellWrapper>
+  </>
+)
+
+const AiViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
+  <>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <TrendingUp className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.ai_opportunity_score}%</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <BooleanIndicator value={rec.perplexity_cited} />
+    </CellWrapper>
+    <CellWrapper>
+      <BooleanIndicator value={rec.gemini_cited} />
+    </CellWrapper>
+    <CellWrapper>
+      <span className="text-sm text-[#787774]">
+        {rec.perplexity_citation_rank > 0 ? rec.perplexity_citation_rank : "N/A"}
+      </span>
+    </CellWrapper>
+    <CellWrapper>
+      <BooleanIndicator value={rec.perplexity_first_paragraph} />
+    </CellWrapper>
+    <CellWrapper>
+      <span className="text-sm text-[#787774]">{rec.engine_consensus}</span>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="inline-flex items-center px-2 py-0.5 bg-[#f1f1ef] rounded text-sm font-medium text-[#37352f]">
+        {rec.final_score}
+      </div>
+    </CellWrapper>
+  </>
+)
+
+const SeoViewCells = ({ rec }: { rec: RecommendedPrompt }) => (
+  <>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <Target className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.seo_opportunity_score}%</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <Search className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">{rec.search_volume.toLocaleString()}</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <Badge className={cn("border-0 text-xs px-2 py-0.5", getDifficultyBadgeColor(rec.keyword_difficulty))}>
+        KD: {rec.keyword_difficulty}
+      </Badge>
+    </CellWrapper>
+    <CellWrapper>
+      <div className="flex items-center gap-1.5">
+        <DollarSign className="w-3.5 h-3.5 text-[#787774]" />
+        <span className="text-sm text-[#37352f]">${rec.cpc.toFixed(2)}</span>
+      </div>
+    </CellWrapper>
+    <CellWrapper>
+      <span
+        className={cn(
+          "text-sm",
+          rec.trend_yoy > 0 ? "text-green-600" : rec.trend_yoy < 0 ? "text-red-600" : "text-[#787774]",
+        )}
+      >
+        {rec.trend_yoy.toFixed(0)}%
+      </span>
+    </CellWrapper>
+    <CellWrapper>
+      <SerpFeatures rec={rec} />
+    </CellWrapper>
+    <CellWrapper>
+      <div className="inline-flex items-center px-2 py-0.5 bg-[#f1f1ef] rounded text-sm font-medium text-[#37352f]">
+        {rec.final_score}
+      </div>
+    </CellWrapper>
+  </>
+)

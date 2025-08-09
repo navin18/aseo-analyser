@@ -16,19 +16,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          rel="stylesheet"
-          href="https://assets.vercel.com/raw/upload/v1587845599/fonts/geist-sans/geist-sans.css"
-        />
-        <link
-          rel="stylesheet"
-          href="https://assets.vercel.com/raw/upload/v1587845599/fonts/geist-mono/geist-mono.css"
-        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
         <style>{`
-:root {
-  --font-sans: 'Geist Sans', sans-serif;
-  --font-mono: 'Geist Mono', monospace;
-}
+          :root {
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+          }
         `}</style>
       </head>
       <body className="font-sans">{children}</body>

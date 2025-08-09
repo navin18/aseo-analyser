@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { Prompt, AnalysisState } from "@/lib/types"
-import { Globe, Sparkles, Plus, FileText, Loader2, AlertCircle, Edit3, Trash2 } from "lucide-react"
+import { Globe, Sparkles, Download, FileText, Loader2, AlertCircle, Edit3, Trash2 } from "lucide-react"
 
 interface InputSectionProps {
   domain: string
@@ -130,7 +130,7 @@ export function InputSection({
               disabled={!promptInput.trim()}
               className="h-8 px-3 text-xs font-medium bg-[#2383e2] hover:bg-[#1a6bb8] text-white border-0 rounded-md disabled:bg-[#e9e9e7] disabled:text-[#9b9a97] transition-all duration-200"
             >
-              <Plus className="w-3 h-3 mr-1" /> Add Prompt
+              <Download className="w-3 h-3 mr-1" /> Load Prompt
             </Button>
             <Button
               variant="outline"
@@ -144,7 +144,7 @@ export function InputSection({
                 </>
               ) : (
                 <>
-                  <FileText className="w-3 h-3 mr-1" /> Upload CSV File
+                  <FileText className="w-3 h-3 mr-1" /> Import Prompts
                 </>
               )}
             </Button>
